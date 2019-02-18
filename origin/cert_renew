@@ -1,0 +1,37 @@
+#!/bin/bash
+
+web_service='haproxy'
+domain='www.mturkcrowd.com'
+http_01_port='54321'
+combined_file="/etc/ssl/private/${domain}.pem"
+exp_limit=30;
+
+cert_file="/etc/letsencrypt/live/$domain/fullchain.pem"
+key_file="/etc/letsencrypt/live/$domain/privkey.pem"
+
+if [ ! -f $cert_file ]; then
+ echo "[ERROR] certificate file not found for domain $domain."
+fi
+
+exp=$(date -d "`openssl x509 -in $cert_file -text -noout|grep "Not After"|cut -c 25-`" +%s)
+echo $exp
+datenow=$(date -d "now" +%s)
+days_exp=$(echo \( $exp - $datenow \) / 86400 |bc)
+
+echo "Checking expiration date for $domain..."
+
+if [ "$days_exp" -gt "$exp_limit" ] ; then
+ echo "The certificate is up to date, no need for renewal ($days_exp days left)."
+ exit 0;
+else
+ echo "The certificate for $domain expires in $days_exp days. Starting Let's Encrypt (HAProxy:$http_01_port) renewal script..."
+ /usr/bin/certbot certonly --standalone --http-01-port $http_01_port --preferred-challenges http-01 -d mturkcrowd.com -d  www.mturkcrowd.com -d admin.mturkcrowd.com -d origin.mturkcrowd.com
+
+ echo "Creating $combined_file with latest certs..."
+ cat /etc/letsencrypt/live/$domain/fullchain.pem /etc/letsencrypt/live/$domain/privkey.pem > $combined_file
+
+ echo "Reloading $web_service"
+ /usr/sbin/service $web_service reload
+ echo "Renewal process finished for domain $domain"
+ exit 0;
+fi

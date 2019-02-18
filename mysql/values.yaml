@@ -1,0 +1,54 @@
+## mysql image version
+## ref: https://hub.docker.com/r/library/mysql/tags/
+##
+image: "mysql"
+imageTag: "5.7.14"
+
+## Specify password for root user
+##
+## Default: random 10 character string
+# mysqlRootPassword: testing
+
+## Create a database user
+##
+mysqlUser: "mturkcrowd"
+mysqlPassword: ""
+
+## Create a database
+##
+mysqlDatabase: "mturkcrowd"
+
+## Specify an imagePullPolicy (Required)
+## It's recommended to change this to 'Always' if the image tag is 'latest'
+## ref: http://kubernetes.io/docs/user-guide/images/#updating-images
+##
+imagePullPolicy: IfNotPresent
+
+## Persist data to a persitent volume
+persistence:
+  existingClaim: "mysql-data"
+  enabled: true 
+  storageClass: "do-block-storage"
+  accessMode: ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+
+## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+##
+resources:
+  requests:
+    memory: 100Mi
+    cpu: 500m
+  limits:
+    memory: 500Mi
+    cpu: 1000m
+
+# Custom mysql configuration files used to override default mysql settings
+configurationFiles:
+  mysql.cnf: |-
+    [mysqld]
+    log-bin=mysql-bin
+    server-id=1
+    innodb_flush_log_at_trx_commit=1
+    sync_binlog=1
